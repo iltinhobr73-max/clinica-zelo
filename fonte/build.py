@@ -5,6 +5,7 @@ Todos os dados da clínica ficam no bloco DADOS, logo abaixo. Ao preencher um
 campo, troque o valor None pelo texto e rode o script de novo."""
 import json
 import re
+import sys
 from pathlib import Path
 from urllib.parse import quote
 
@@ -29,8 +30,18 @@ MAPS_EMBED = "https://www.google.com/maps?q=" + quote(MAPS_Q) + "&z=16&output=em
 # ─────────────────────────────────────────────────────────────────
 
 
+# O site publicado não mostra pendências. Para ver todas as etiquetas [PREENCHER]
+# e os espaços reservados para fotos: python3 fonte/build.py --rascunho
+RASCUNHO = "--rascunho" in sys.argv
+
+
 def fill(txt):
-    return f'<span class="fill">[PREENCHER: {txt}]</span>'
+    return f'<span class="fill">[PREENCHER: {txt}]</span>' if RASCUNHO else ""
+
+
+def so(html):
+    """Trecho que só existe no rascunho (depende de informação ainda não fornecida)."""
+    return html if RASCUNHO else ""
 
 
 def wa(msg):
@@ -159,8 +170,7 @@ def layout(page, title, desc, body, wa_msg, og="pilates-orientado"):
       <ul>
         <li><a href="tel:{FONE_TEL}">{FONE_EXIBE}</a></li>
         <li><a href="{w}" target="_blank" rel="noopener">WhatsApp</a></li>
-        <li><span>{fill('Instagram da clínica')}</span></li>
-        <li><span>{fill('horários; fecha às 21h')}</span></li>
+        {so('<li><span>' + fill('Instagram da clínica') + '</span></li><li><span>' + fill('horários; fecha às 21h') + '</span></li>')}
       </ul>
     </div>
     <div class="footer-col">
@@ -169,7 +179,7 @@ def layout(page, title, desc, body, wa_msg, og="pilates-orientado"):
     </div>
   </div>
   <div class="wrap"><div class="footer-legal">
-    <p>{NOME_COMPLETO} · CNPJ {fill('CNPJ')}<br>Responsável técnica: {fill('nome e CREFITO')}</p>
+    <p>{NOME_COMPLETO}{so(' · CNPJ ' + fill('CNPJ') + '<br>Responsável técnica: ' + fill('nome e CREFITO'))}</p>
     <p>© 2026 {NOME}. Todos os direitos reservados.</p>
   </div></div>
 </footer>
@@ -241,7 +251,7 @@ def toc(items):
     return f'<nav class="toc" aria-label="Nesta página"><div class="wrap"><ul>{lis}</ul></div></nav>'
 
 
-def luanna(with_h2=True):
+def luanna():
     return f"""
     <div class="person grid">
       <div class="person-media reveal">
@@ -252,13 +262,12 @@ def luanna(with_h2=True):
         <p class="person-role">Fisioterapeuta e proprietária da Clínica Zelo</p>
         <p style="margin-top:1.25rem">Especialista no tratamento da dor. {fill('duas ou três frases da Luanna, na voz dela: por que escolheu a fisioterapia e como gosta de atender')}</p>
         <dl class="person-meta">
-          <div><dt>Registro</dt><dd>{fill('CREFITO')}</dd></div>
-          <div><dt>Formação</dt><dd>{fill('graduação, especializações e cursos')}</dd></div>
+          {so('<div><dt>Registro</dt><dd>' + fill('CREFITO') + '</dd></div><div><dt>Formação</dt><dd>' + fill('graduação, especializações e cursos') + '</dd></div>')}
           <div><dt>Instagram</dt><dd><a href="https://www.instagram.com/luannacarvalhor/" target="_blank" rel="noopener">@luannacarvalhor</a></dd></div>
         </dl>
       </div>
     </div>
-    <p class="team-more reveal">{fill('demais profissionais da equipe: nome, CREFITO, especialidade, foto e uma frase de cada')}</p>"""
+    {so('<p class="team-more reveal">' + fill('demais profissionais da equipe: nome, CREFITO, especialidade, foto e uma frase de cada') + '</p>')}"""
 
 
 def onde(alt=False):
@@ -276,9 +285,9 @@ def onde(alt=False):
       <p class="where-ref">Entre no prédio do supermercado Frangolândia e suba ao 2º andar.</p>
       <dl class="info">
         <div><dt>Endereço</dt><dd><address>{RUA}<br>{BAIRRO}, {CEP}</address></dd></div>
-        <div><dt>Horário</dt><dd>{fill('dias e horários completos; fecha às 21h')}</dd></div>
+        {so('<div><dt>Horário</dt><dd>' + fill('dias e horários completos; fecha às 21h') + '</dd></div>')}
         <div><dt>Telefone</dt><dd><a href="tel:{FONE_TEL}">{FONE_EXIBE}</a></dd></div>
-        <div><dt>Acesso</dt><dd>{fill('estacionamento, elevador e acessibilidade')}</dd></div>
+        {so('<div><dt>Acesso</dt><dd>' + fill('estacionamento, elevador e acessibilidade') + '</dd></div>')}
       </dl>
       <div class="where-actions">
         <a class="btn btn--ghost" href="{MAPS_ROTA}" target="_blank" rel="noopener">Abrir rota</a>
@@ -306,30 +315,38 @@ def page_index():
         f'<li class="reason"><a href="{h}"><h3>{t}</h3><p>{d}</p><span class="to">{to}</span></a></li>'
         for t, d, h, to in reasons)
 
+    def front(n, titulo, texto, tags, href, rotulo):
+        lis = "".join(f"<li>{t}</li>" for t in tags)
+        return (f'<article class="front reveal"><span class="front-n">{n:02d}</span><h3>{titulo}</h3><p>{texto}</p>'
+                f'<ul class="tags">{lis}</ul><a class="link" href="{href}">{rotulo}</a></article>')
+
     body = f"""
-<section class="hero" aria-labelledby="hero-t">
+<section class="hero on-green" aria-labelledby="hero-t">
   <div class="wrap grid">
     <div class="hero-text">
       <span class="eyebrow">Clínica de fisioterapia · Maraponga, Fortaleza</span>
-      <h1 id="hero-t">Fisioterapia e Pilates na Maraponga, com tempo para olhar <em>o seu caso.</em></h1>
-      <p class="lead">Você passa por uma avaliação, entende o que está acontecendo com o seu corpo e segue um plano de tratamento feito para a sua rotina.</p>
+      <h1 id="hero-t">Fisioterapia e Pilates com tempo para olhar <em>o seu caso.</em></h1>
+      <p class="lead">Na Maraponga. Você passa por uma avaliação, entende o que está acontecendo com o seu corpo e segue um plano de tratamento feito para a sua rotina.</p>
       <div class="hero-actions">
         <a class="btn btn--accent" href="{wa(msg)}" target="_blank" rel="noopener">{WA_ICON}Agendar avaliação pelo WhatsApp</a>
         <a class="link" href="#como-chegar">Como chegar</a>
       </div>
-      <dl class="hero-facts">
-        <div><dt>No Google</dt><dd>{NOTA} · {N_AVAL} avaliações</dd></div>
-        <div><dt>Onde</dt><dd>Maraponga, Fortaleza</dd></div>
-        <div><dt>Referência</dt><dd>2º andar, prédio do Frangolândia</dd></div>
-      </dl>
     </div>
     <div class="hero-media">
-      {figure("pilates-orientado", "Fisioterapeuta de uniforme azul orienta uma aluna que ergue uma bola vermelha sentada em um aparelho de Pilates, em frente ao espelho do estúdio", "p", "Aula de Pilates no estúdio da clínica.", eager=True)}
+      <div class="hero-photo hero-photo--a ratio-p figure">{pic("pilates-orientado", "Fisioterapeuta de uniforme azul orienta uma aluna que ergue uma bola vermelha sentada em um aparelho de Pilates", "p", eager=True)}</div>
+      <div class="hero-photo hero-photo--b ratio-p figure">{pic("pilates-aluna", "Aluna sentada em um aparelho de Pilates puxa alças com os braços estendidos à frente", "p", eager=True)}</div>
     </div>
+  </div>
+  <div class="wrap">
+    <dl class="hero-facts">
+      <div><dt>No Google</dt><dd>{NOTA} · {N_AVAL} avaliações</dd></div>
+      <div><dt>Onde</dt><dd>Maraponga, Fortaleza</dd></div>
+      <div><dt>Referência</dt><dd>2º andar, prédio do Frangolândia</dd></div>
+    </dl>
   </div>
 </section>
 
-<section class="section section--line" aria-labelledby="motivos-t">
+<section class="section" aria-labelledby="motivos-t">
   <div class="wrap grid">
     <div class="reasons-head reveal">
       <span class="eyebrow">Por onde começar</span>
@@ -342,86 +359,49 @@ def page_index():
 
 <section class="section section--alt" aria-labelledby="frentes-t">
   <div class="wrap">
-    <div class="fronts-intro reveal">
-      <span class="eyebrow">O que fazemos</span>
-      <h2 id="frentes-t">Três frentes de cuidado, um mesmo plano.</h2>
-      <p class="lead" style="margin-top:1.25rem">O tratamento pode usar uma delas ou combinar as três. Quem decide é a avaliação, e não um pacote pronto.</p>
+    <div class="head2 grid reveal">
+      <div class="head2-a">
+        <span class="eyebrow">O que fazemos</span>
+        <h2 id="frentes-t">Três frentes de cuidado, um mesmo plano.</h2>
+      </div>
+      <p class="head2-b lead">O tratamento pode usar uma delas ou combinar as três. Quem decide é a avaliação, e não um pacote pronto.</p>
     </div>
-
-    <article class="front front--a grid">
-      <div class="front-media reveal">{figure("laserterapia", "Fisioterapeuta de luvas aplica laser terapêutico no pescoço de um paciente deitado na maca", "l", "Aplicação de laser em uma sessão de fisioterapia.")}</div>
-      <div class="front-body reveal">
-        <span class="front-n">01</span>
-        <h3>Fisioterapia</h3>
-        <p>Para tratar dor, recuperar movimento depois de uma lesão ou cirurgia e voltar às atividades com segurança. O atendimento começa por entender a causa do problema.</p>
-        <ul class="tags"><li>Ortopédica</li><li>Esportiva</li><li>Pós-cirúrgica</li><li>Para gestantes</li><li>Para idosos</li></ul>
-        <a class="link" href="fisioterapia.html">Conhecer a fisioterapia</a>
-      </div>
-    </article>
-
-    <article class="front front--b grid">
-      <div class="front-media reveal">{figure("pilates-aluna", "Aluna sentada em um aparelho de Pilates puxa alças com os braços estendidos à frente, com bolas e acessórios ao fundo", "p", "Exercício de braços com molas, no estúdio.")}</div>
-      <div class="front-body reveal">
-        <span class="front-n">02</span>
-        <h3>Pilates</h3>
-        <p>Pilates clínico parte de uma avaliação e respeita dores, lesões e limites. Serve para quem está em tratamento e para quem quer se exercitar com orientação de perto.</p>
-        <ul class="tags"><li>Clínico</li><li>Personalizado</li><li>Para idosos</li><li>Para gestantes</li></ul>
-        <a class="link" href="pilates.html">Conhecer o Pilates</a>
-      </div>
-    </article>
-
-    <article class="front front--c grid">
-      <div class="front-media reveal">{ph("l", "Foto horizontal, de perto: mãos da fisioterapeuta em um atendimento de terapia manual nas costas ou no ombro de um paciente, com luz suave.")}</div>
-      <div class="front-body reveal">
-        <span class="front-n">03</span>
-        <h3>Terapias manuais</h3>
-        <p>Técnicas feitas com as mãos para trabalhar articulações, músculos e tensões. Entram no plano quando a avaliação mostra que fazem sentido para o seu caso.</p>
-        <ul class="tags"><li>Quiropraxia</li><li>Osteopatia</li><li>Liberação miofascial</li><li>Liberação muscular</li><li>Ventosaterapia</li></ul>
-        <a class="link" href="terapias-manuais.html">Conhecer as terapias manuais</a>
-      </div>
-    </article>
-  </div>
-</section>
-
-<section class="section visit" aria-labelledby="visita-t">
-  <div class="wrap grid">
-    <div class="visit-media reveal">
-      {figure("sala-avaliacao-v", "Sala de avaliação com maca, mesa de vidro, cadeiras e parede cinza texturizada", "p", "A sala onde acontece a avaliação.")}
-    </div>
-    <div class="visit-body">
-      <div class="reveal">
-        <span class="eyebrow">A primeira visita</span>
-        <h2 id="visita-t">Como funciona, do primeiro contato em diante.</h2>
-      </div>
-      <ol class="steps">
-        <li class="step reveal"><div><h3>Você chama no WhatsApp</h3><p>Conte em poucas palavras o que está sentindo. A gente tira as dúvidas iniciais e combina o melhor horário para a avaliação.</p></div></li>
-        <li class="step reveal"><div><h3>Avaliação</h3><p>Uma conversa sobre a sua história e a sua rotina, seguida de testes de movimento, força e postura. Se tiver exames, traga. {fill('duração da avaliação e o que levar')}</p></div></li>
-        <li class="step reveal"><div><h3>Plano de tratamento</h3><p>Você sai sabendo o que foi encontrado, o que vamos fazer e por quê, explicado sem termos difíceis.</p></div></li>
-        <li class="step reveal"><div><h3>Acompanhamento</h3><p>A cada sessão observamos como o corpo respondeu e ajustamos o plano. Você também recebe orientações para o dia a dia.</p></div></li>
-      </ol>
+    <div class="fronts">
+      {front(1, "Fisioterapia", "Para tratar dor, recuperar movimento depois de uma lesão ou cirurgia e voltar às atividades com segurança.", ["Ortopédica", "Esportiva", "Pós-cirúrgica", "Para gestantes", "Para idosos"], "fisioterapia.html", "Conhecer a fisioterapia")}
+      {front(2, "Pilates", "Pilates clínico parte de uma avaliação e respeita dores, lesões e limites. Para quem está em tratamento e para quem quer se exercitar com orientação.", ["Clínico", "Personalizado", "Para idosos", "Para gestantes"], "pilates.html", "Conhecer o Pilates")}
+      {front(3, "Terapias manuais", "Técnicas feitas com as mãos para trabalhar articulações, músculos e tensões, quando a avaliação mostra que fazem sentido.", ["Quiropraxia", "Osteopatia", "Liberação miofascial", "Liberação muscular", "Ventosaterapia"], "terapias-manuais.html", "Conhecer as terapias manuais")}
     </div>
   </div>
 </section>
 
-<section class="section on-green" aria-labelledby="espaco-t">
-  <div class="wrap grid">
-    <div class="space-head reveal">
-      <span class="eyebrow">O espaço</span>
-      <h2 id="espaco-t">Um lugar tranquilo para se cuidar.</h2>
+<section class="section" aria-labelledby="visita-t">
+  <div class="wrap">
+    <div class="reveal">
+      <span class="eyebrow">A primeira visita</span>
+      <h2 id="visita-t" style="max-width:18ch">Como funciona, do primeiro contato em diante.</h2>
     </div>
-    <div class="space-a reveal">
-      {figure("estudio-pilates", "Estúdio de Pilates com piso de madeira, aparelhos cinza, coluna de jardim vertical e iluminação quente no teto", "l", "O estúdio de Pilates.")}
-    </div>
-    <div class="space-side">
-      <blockquote class="space-quote reveal">
-        <p class="quote">Lugar agradável, bons equipamentos e equipe preparada e atenciosa.</p>
-        <cite class="quote-src" style="font-style:normal">Avaliação no Google</cite>
-      </blockquote>
-      <div class="space-b reveal">
-        {figure("sala-avaliacao", "Sala de atendimento com maca, armário branco e mesa de vidro", "l", "Sala de atendimento individual.")}
+    <ol class="steps">
+      <li class="step reveal"><h3>Você chama no WhatsApp</h3><p>Conte em poucas palavras o que está sentindo. A gente tira as dúvidas e combina o horário da avaliação.</p></li>
+      <li class="step reveal"><h3>Avaliação</h3><p>Uma conversa sobre a sua história e a sua rotina, seguida de testes de movimento, força e postura. Se tiver exames, traga. {fill('duração da avaliação e o que levar')}</p></li>
+      <li class="step reveal"><h3>Plano de tratamento</h3><p>Você sai sabendo o que foi encontrado, o que vamos fazer e por quê, explicado sem termos difíceis.</p></li>
+      <li class="step reveal"><h3>Acompanhamento</h3><p>A cada sessão observamos como o corpo respondeu e ajustamos o plano, com orientações para o dia a dia.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="section section--alt" aria-labelledby="espaco-t">
+  <div class="wrap">
+    <div class="head2 grid reveal">
+      <div class="head2-a">
+        <span class="eyebrow">O espaço</span>
+        <h2 id="espaco-t">Um lugar tranquilo para se cuidar.</h2>
       </div>
+      <p class="head2-b"><a class="link" href="a-clinica.html">Ver a clínica por dentro</a></p>
     </div>
-    <p class="reveal" style="margin-top:2.5rem"><a class="link" href="a-clinica.html">Ver a clínica por dentro</a></p>
+    <div class="pair">
+      <div class="reveal">{figure("estudio-pilates", "Estúdio de Pilates com piso de madeira, aparelhos cinza, coluna de jardim vertical e iluminação quente no teto", "l", "O estúdio de Pilates.")}</div>
+      <div class="reveal">{figure("sala-avaliacao", "Sala de atendimento com maca, armário branco e mesa de vidro", "l", "Sala de avaliação e atendimento individual.")}</div>
+    </div>
   </div>
 </section>
 
@@ -460,12 +440,13 @@ def page_index():
       <h2 id="faq-t">Perguntas frequentes.</h2>
     </div>
     <div class="faq-list reveal">
-      <details><summary>Preciso de encaminhamento médico?</summary><div class="answer"><p>Para o atendimento particular, você pode agendar a avaliação diretamente com a fisioterapeuta. Se tiver pedido médico, laudos ou exames, traga no primeiro dia: eles ajudam na avaliação.</p><p>{fill('confirmar a regra para convênios')}</p></div></details>
-      <details><summary>Vocês atendem por convênio?</summary><div class="answer"><p>{fill('convênios aceitos e formas de pagamento')}</p></div></details>
-      <details><summary>Quanto tempo dura a sessão?</summary><div class="answer"><p>{fill('duração das sessões de fisioterapia e das aulas de Pilates')}</p></div></details>
+      <details><summary>Preciso de encaminhamento médico?</summary><div class="answer"><p>Para o atendimento particular, você pode agendar a avaliação diretamente com a fisioterapeuta. Se tiver pedido médico, laudos ou exames, traga no primeiro dia: eles ajudam na avaliação.</p>{so('<p>' + fill('confirmar a regra para convênios') + '</p>')}</div></details>
+      {so('<details><summary>Vocês atendem por convênio?</summary><div class="answer"><p>' + fill('convênios aceitos e formas de pagamento') + '</p></div></details>')}
+      {so('<details><summary>Quanto tempo dura a sessão?</summary><div class="answer"><p>' + fill('duração das sessões de fisioterapia e das aulas de Pilates') + '</p></div></details>')}
       <details><summary>Qual a diferença entre Pilates clínico e Pilates de academia?</summary><div class="answer"><p>No Pilates clínico, os exercícios são escolhidos depois de uma avaliação e levam em conta dores, lesões e limitações de cada pessoa. Ele pode fazer parte de um tratamento. Na academia, a aula costuma seguir uma sequência geral, voltada ao condicionamento.</p></div></details>
       <details><summary>Gestante pode fazer Pilates em qualquer fase?</summary><div class="answer"><p>Em geral sim, desde que o obstetra tenha liberado a atividade física. Os exercícios e as posições mudam a cada trimestre, e a avaliação define o que é adequado para o seu momento.</p></div></details>
-      <details><summary>Tem estacionamento?</summary><div class="answer"><p>{fill('onde estacionar e como é o acesso ao 2º andar')}</p></div></details>
+      <details><summary>Como eu agendo?</summary><div class="answer"><p>Pelo WhatsApp ou por telefone, no {FONE_EXIBE}. Conte o que está sentindo e combinamos o horário da sua avaliação.</p></div></details>
+      {so('<details><summary>Tem estacionamento?</summary><div class="answer"><p>' + fill('onde estacionar e como é o acesso ao 2º andar') + '</p></div></details>')}
     </div>
   </div>
 </section>
@@ -716,14 +697,16 @@ def page_terapias():
   </div>
 </section>
 
-<section class="section section--alt" aria-labelledby="tm-t">
+<section class="section section--alt prose" aria-labelledby="tm-t">
   <div class="wrap grid">
-    <div class="band-media reveal">{ph("l", "Foto horizontal, de perto: mãos da fisioterapeuta em um atendimento de terapia manual nas costas ou no ombro de um paciente, com luz suave. Uma segunda foto com ventosas aplicadas também serve aqui.")}</div>
-    <div class="band-body reveal">
+    <div class="prose-head reveal">
       <span class="eyebrow">No plano de tratamento</span>
       <h2 id="tm-t">A técnica certa na hora certa.</h2>
+    </div>
+    <div class="prose-body reveal">
       <p>A terapia manual costuma vir junto com exercícios. As mãos trabalham a tensão e a mobilidade, e o exercício ajuda o corpo a manter o que foi conquistado.</p>
       <p><a class="link" href="fisioterapia.html">Ver a fisioterapia</a></p>
+      {so(ph("l", "Foto horizontal, de perto: mãos da fisioterapeuta em um atendimento de terapia manual nas costas ou no ombro de um paciente, com luz suave."))}
     </div>
   </div>
 </section>
@@ -739,6 +722,17 @@ def page_terapias():
 # ───────────────────────────── A CLÍNICA ─────────────────────────────
 def page_clinica():
     msg = "Olá! Vi o site da Clínica Zelo e gostaria de agendar uma avaliação."
+    historia = so(f"""<section class="section section--line prose" aria-labelledby="hist-t">
+  <div class="wrap grid">
+    <div class="prose-head reveal">
+      <span class="eyebrow">Nossa história</span>
+      <h2 id="hist-t">Como a clínica começou.</h2>
+    </div>
+    <div class="prose-body reveal">
+      <p>{fill('história da clínica: quando e por que foi fundada, o que mudou desde então e o que o nome Zelo representa para a equipe')}</p>
+    </div>
+  </div>
+</section>""")
     body = f"""
 <section class="page-hero">
   <div class="wrap">
@@ -755,17 +749,7 @@ def page_clinica():
   </div>
 </section>
 
-<section class="section section--line prose" aria-labelledby="hist-t">
-  <div class="wrap grid">
-    <div class="prose-head reveal">
-      <span class="eyebrow">Nossa história</span>
-      <h2 id="hist-t">Como a clínica começou.</h2>
-    </div>
-    <div class="prose-body reveal">
-      <p>{fill('história da clínica: quando e por que foi fundada, o que mudou desde então e o que o nome Zelo representa para a equipe')}</p>
-    </div>
-  </div>
-</section>
+{historia}
 
 <section class="section section--alt" aria-labelledby="esp-t">
   <div class="wrap">
@@ -778,8 +762,7 @@ def page_clinica():
     <div class="grid" style="row-gap:var(--gap); align-items:end">
       <div class="reveal" style="grid-column:1/-1" data-g="a">{figure("sala-avaliacao", "Sala de atendimento com maca, armário branco, mesa de vidro e parede cinza texturizada", "l", "Sala de avaliação e atendimento individual.")}</div>
       <div class="reveal" data-g="b">{figure("pilates-aluna", "Aluna em exercício no aparelho de Pilates, com bolas e acessórios organizados ao fundo", "p", "Aparelhos e acessórios do estúdio.")}</div>
-      <div class="reveal" data-g="c">{ph("p", "Foto vertical da recepção, vista de quem chega, sem pessoas posando.")}</div>
-      <div class="reveal" data-g="d">{ph("l", "Foto horizontal da fachada do prédio ou da entrada que leva ao 2º andar, de dia. Ajuda o paciente a reconhecer o lugar.")}</div>
+      {so('<div class="reveal" data-g="c">' + ph("p", "Foto vertical da recepção, vista de quem chega, sem pessoas posando.") + '</div><div class="reveal" data-g="d">' + ph("l", "Foto horizontal da fachada do prédio ou da entrada que leva ao 2º andar, de dia.") + '</div>')}
     </div>
     <blockquote class="reveal" style="margin-top:clamp(2.5rem,5vw,4.5rem); max-width:44rem">
       <p class="quote">Bem agradável, ótimo espaço!</p>
@@ -820,7 +803,7 @@ def page_contato():
         <h1>Fale com a gente. <em>Responder é parte do cuidado.</em></h1>
         <p class="lead">O caminho mais rápido para agendar é o WhatsApp. Se preferir, ligue ou passe na clínica.</p>
       </div>
-      <p class="page-hero-aside">Horário de atendimento: {fill('dias e horários completos; fecha às 21h')}</p>
+      {so('<p class="page-hero-aside">Horário de atendimento: ' + fill('dias e horários completos; fecha às 21h') + '</p>')}
     </div>
   </div>
 </section>
@@ -831,7 +814,7 @@ def page_contato():
       <li class="channel"><a href="{wa(msg)}" target="_blank" rel="noopener"><span class="k">WhatsApp</span><span class="big">Agendar uma avaliação</span><span class="note">{FONE_EXIBE}</span></a></li>
       <li class="channel"><a href="tel:{FONE_TEL}"><span class="k">Telefone</span><span class="big">{FONE_EXIBE}</span><span class="note">Toque para ligar</span></a></li>
       <li class="channel"><a href="{MAPS_ROTA}" target="_blank" rel="noopener"><span class="k">Endereço</span><span class="big">{RUA}</span><span class="note">{BAIRRO}<br>CEP {CEP}</span></a></li>
-      <li class="channel"><div><span class="k">Instagram</span><span class="big">{fill('@ da clínica')}</span><span class="note"></span></div></li>
+      {so('<li class="channel"><div><span class="k">Instagram</span><span class="big">' + fill('@ da clínica') + '</span><span class="note"></span></div></li>')}
     </ul>
   </div>
 </section>
@@ -859,14 +842,15 @@ def page_contato():
   </div>
 </section>
 
-<section class="section" aria-labelledby="fach-t">
+<section class="section prose" aria-labelledby="fach-t">
   <div class="wrap grid">
-    <div class="band-media reveal">{ph("l", "Foto horizontal da fachada do prédio, de dia, mostrando a entrada que leva ao 2º andar. É a foto que mais ajuda quem vem pela primeira vez.")}</div>
-    <div class="band-body reveal">
+    <div class="prose-head reveal">
       <span class="eyebrow">Primeira vez?</span>
       <h2 id="fach-t">O que trazer.</h2>
+    </div>
+    <div class="prose-body reveal">
       <p>Se tiver exames, laudos ou pedido médico, traga no dia da avaliação. Venha com uma roupa confortável, que permita se movimentar.</p>
-      <p>{fill('documentos necessários e outras orientações da clínica')}</p>
+      {so('<p>' + fill('documentos necessários e outras orientações da clínica') + '</p>' + ph("l", "Foto horizontal da fachada do prédio, de dia, mostrando a entrada que leva ao 2º andar."))}
     </div>
   </div>
 </section>

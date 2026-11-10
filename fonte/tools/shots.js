@@ -7,7 +7,7 @@ const out = process.argv[2]; const pages = (process.argv[3]||'index').split(',')
     const p = await ctx.newPage();
     const errs = []; p.on('pageerror', e => errs.push(e.message));
     for (const name of pages) {
-      await p.goto(`http://localhost:8765/${name}.html`, { waitUntil: 'load' });
+      await p.goto(`http://localhost:8766/${name}.html`, { waitUntil: 'load' });
       await p.evaluate(async () => { document.querySelectorAll('.reveal').forEach(e=>e.classList.add('is-in')); document.querySelectorAll('img').forEach(i=>i.loading='eager'); await document.fonts.ready; });
       await p.waitForTimeout(600); await p.evaluate(() => Promise.all([...document.images].map(i => i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; }))));
       const ov = await p.evaluate(() => { const w = document.documentElement.clientWidth; const bad=[]; document.querySelectorAll('body *').forEach(e=>{const r=e.getBoundingClientRect(); if(r.width>0 && (r.right>w+1||r.left<-1) && !e.closest('.toc') && !e.closest('.menu') && !e.closest('.skip') && !e.classList.contains('vh')) bad.push(e.tagName+'.'+e.className+' '+Math.round(r.left)+'-'+Math.round(r.right));}); return {sw: document.documentElement.scrollWidth, w, bad: bad.slice(0,8)}; });
