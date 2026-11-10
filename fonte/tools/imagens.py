@@ -22,3 +22,10 @@ for name, (f, box, size) in JOBS.items():
     im.save(f"{OUT}/{name}.webp", "WEBP", quality=82, method=6)
     im.save(f"{OUT}/{name}.jpg", "JPEG", quality=84, optimize=True, progressive=True)
     print(name, im.size)
+
+# Fundo do hero: foto do estúdio em tons de cinza e levemente desfocada (o CSS cobre com verde).
+from PIL import ImageOps, ImageEnhance
+bg = Image.open(f"{SRC}/2.png").convert("RGB").crop((4, 150, 490, 423)).resize((1600, 899), Image.LANCZOS)
+bg = ImageEnhance.Contrast(ImageOps.grayscale(bg).filter(ImageFilter.GaussianBlur(3))).enhance(1.15).convert("RGB")
+bg.save(f"{OUT}/hero-fundo.webp", "WEBP", quality=60, method=6)
+print("hero-fundo", bg.size)
